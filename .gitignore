@@ -1,0 +1,9 @@
+.env
+raw*
+bin
+pyvenv.cfg
+lib
+example_files
+dep*
+.mypy*
+include
