@@ -1,0 +1,5 @@
+databento
+duckdb
+python-dotenv
+fastapi
+uvicorn[standard]
