@@ -1,23 +1,17 @@
 from fastapi import FastAPI
 import uvicorn
-import datetime
-from pydantic import BaseModel
+from routes import router
+from fastapi.middleware.cors import CORSMiddleware
 
-class Request(BaseModel):
-    timezone: datetime.timezone
-    range_hour_start: datetime.time
-    range_hour_end: datetime.time
-    
 
 app = FastAPI()
-
-@app.get("/")
-def hello_world():
-    return {"message": "Hello World"}
-
-@app.get("/date-range")
-def get_items(start: datetime.datetime = None, end: datetime.datetime = None):
-    return {"start": start, "end": end}
+app.include_router(router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run('main:app', host="0.0.0.0", port=8000, reload=True)

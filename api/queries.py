@@ -1,24 +1,23 @@
-import datetime
+# Step 1: filter raw data to relevant date range
+# Step 2: find the lead contract by daily volume
+# Step 3: calculate the opening range (16:30-16:45)
+# Step 4: detect first breach and compute targets
+# Step 5: find trade outcome (profit or stop)
 
-
-def primary_method_query(start_hour: datetime.time, end_hour: datetime.time):
-    return """
---final query
+ORB_QUERY = """
 WITH 
--- 1. סינון ראשוני: מחשבים תאריכים ושעות פעם אחת ומסננים טווח רלוונטי
 raw_data AS (
     SELECT 
         ts_event,
-        ts_event::DATE AS trade_day, -- חישוב יקר שנעשה פעם אחת
+        ts_event::DATE AS trade_day,
         symbol,
         high,
         low,
         volume
     FROM main.nq_ohlcv
-    WHERE ts_event >= '2023-01-01' -- חובה! תמיד לסנן טווח זמן לעבודה
+    WHERE ts_event >= $start_date
     AND symbol NOT LIKE '%-%'
 ),
--- 2. מציאת החוזה המוביל (לפי ווליום יומי)
 daily_lead AS (
     SELECT 
         trade_day,
@@ -27,7 +26,6 @@ daily_lead AS (
     GROUP BY 1, 2
     QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day ORDER BY SUM(volume) DESC) = 1
 ),
--- 3. חישוב ה-Opening Range (רק לחוזה המוביל)
 opening_range AS (
     SELECT 
         r.trade_day,
@@ -40,7 +38,6 @@ opening_range AS (
     WHERE r.ts_event::TIMESTAMP::TIME BETWEEN '16:30:00' AND '16:45:00'
     GROUP BY 1, 2
 ),
--- 4. זיהוי הפריצה הראשונה + חישוב יעדים
 first_breach AS (
     SELECT
         o.*,
@@ -51,16 +48,14 @@ first_breach AS (
             WHEN r.high >= o.or_high THEN 'long'
             ELSE 'short'
         END AS direction,
-        -- יעדים (מחושבים מראש לביצועים)
-        CASE WHEN r.high >= o.or_high THEN (o.or_high + o.or_delta) ELSE (o.or_low - o.or_delta) END as target_price,
-        CASE WHEN r.high >= o.or_high THEN (o.or_high - (0.5 * o.or_delta)) ELSE (o.or_low + (0.5 * o.or_delta)) END as stop_price       
+        CASE WHEN r.high >= o.or_high THEN (o.or_high + $take_profit * o.or_delta) ELSE (o.or_low - $take_profit * o.or_delta) END AS target_price,
+        CASE WHEN r.high >= o.or_high THEN (o.or_high - ($stop_loss * o.or_delta)) ELSE (o.or_low + ($stop_loss * o.or_delta)) END AS stop_price       
     FROM raw_data r
     JOIN opening_range o ON r.trade_day = o.trade_day AND r.symbol = o.symbol
     WHERE r.ts_event::TIMESTAMP::TIME > '16:45:00'
     AND (r.high >= o.or_high OR r.low <= o.or_low)
     QUALIFY ROW_NUMBER() OVER(PARTITION BY r.trade_day ORDER BY r.ts_event ASC) = 1
 ),
--- 5. מציאת התוצאה (Target vs Stop) - החלק הכבד שעבר אופטימיזציה
 final_outcome AS (
     SELECT 
         fb.trade_day,
@@ -77,11 +72,11 @@ final_outcome AS (
             WHEN fb.direction = 'long' AND r.low <= fb.stop_price THEN 'STOP'
             WHEN fb.direction = 'short' AND r.low <= fb.target_price THEN 'PROFIT'
             WHEN fb.direction = 'short' AND r.high >= fb.stop_price THEN 'STOP'
-        END as outcome,
+        END AS outcome,
         fb.or_delta
     FROM raw_data r
     JOIN first_breach fb 
-    ON r.trade_day = fb.trade_day -- קריטי: Join על תאריך מחושב מראש
+    ON r.trade_day = fb.trade_day
     AND r.symbol = fb.symbol
     WHERE r.ts_event > fb.breach_ts
     AND (
@@ -94,8 +89,8 @@ final_outcome AS (
 SELECT 
     *,
     CASE 
-        WHEN fo.outcome = 'STOP' THEN -(0.5 * fo.or_delta)
-        WHEN fo.outcome = 'PROFIT' THEN fo.or_delta
-    END as trade_delta
+        WHEN fo.outcome = 'STOP' THEN -($stop_loss * fo.or_delta)
+        WHEN fo.outcome = 'PROFIT' THEN ($take_profit * fo.or_delta)
+    END AS trade_delta
 FROM final_outcome fo
 ORDER BY trade_day;"""
