@@ -4,3 +4,5 @@ example_files
 dep*
 .mypy*
 venv/
+/node_modules
+*.pyc

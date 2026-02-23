@@ -35,7 +35,7 @@ opening_range AS (
         (MAX(r.high) - MIN(r.low)) AS or_delta
     FROM raw_data r
     JOIN daily_lead dl ON r.trade_day = dl.trade_day AND r.symbol = dl.symbol
-    WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME BETWEEN $range_start AND $range_end
+    WHERE (r.ts_event AT TIME ZONE 'Asia/Jerusalem')::TIME BETWEEN '16:30:00' AND '16:45:00'
     GROUP BY 1, 2
 ),
 first_breach AS (
@@ -52,15 +52,15 @@ first_breach AS (
         CASE WHEN r.high >= o.or_high THEN (o.or_high - ($stop_loss * o.or_delta)) ELSE (o.or_low + ($stop_loss * o.or_delta)) END AS stop_price       
     FROM raw_data r
     JOIN opening_range o ON r.trade_day = o.trade_day AND r.symbol = o.symbol
-    WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME >= $range_end
+    WHERE (r.ts_event AT TIME ZONE 'Asia/Jerusalem')::TIME > '16:45:00'
     AND (r.high >= o.or_high OR r.low <= o.or_low)
-    QUALIFY ROW_NUMBER() OVER(PARTITION BY r.trade_day ORDER BY (r.ts_event AT TIME ZONE 'America/New_York')::TIME ASC) = 1
+    QUALIFY ROW_NUMBER() OVER(PARTITION BY r.trade_day ORDER BY r.ts_event ASC) = 1
 ),
 final_outcome AS (
     SELECT 
         fb.trade_day,
-        (fb.breach_ts AT TIME ZONE 'America/New_York')::TIME AS trade_start_time,
-        (r.ts_event AT TIME ZONE 'America/New_York')::TIME AS trade_end_time,
+        (fb.breach_ts AT TIME ZONE 'Asia/Jerusalem')::TIME AS trade_start_time,
+        (r.ts_event AT TIME ZONE 'Asia/Jerusalem')::TIME AS trade_end_time,
         (r.ts_event - fb.breach_ts) AS trade_time_elapsed,
         fb.direction,
         fb.or_high,

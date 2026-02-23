@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter
 from models import ORBRequest
-from utils.metrics import find_biggest_drawdown, nyc_time_to_jerusalem
+from utils.metrics import find_biggest_drawdown
 from queries import ORB_QUERY
 from database import conn
 
@@ -24,8 +24,6 @@ def get_orb_backtest(request: ORBRequest):
         "take_profit": float(request.take_profit),
         "stop_loss": float(request.stop_loss),
         "start_date": datetime.strptime(str(request.start_date), "%Y-%m-%d").date(),
-        "range_start": request.range_start,
-        "range_end": request.range_end,  
     }
     res = conn.execute(ORB_QUERY, params).df()
     data = res.to_dict(orient="records")

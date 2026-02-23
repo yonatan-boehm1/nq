@@ -3,3 +3,4 @@ duckdb
 python-dotenv
 fastapi
 uvicorn[standard]
+pytz

@@ -39,9 +39,7 @@ def pull_and_ingest_trades():
 
     while True:
         jobs = client.batch.list_jobs()
-        status = next(
-            (job["state"] for job in jobs if job["id"] == job_id), None
-        )
+        status = next((job["state"] for job in jobs if job["id"] == job_id), None)
 
         if status == "done":
             break
