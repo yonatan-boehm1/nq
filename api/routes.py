@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter
-from models import ORBRequest
-from utils.metrics import find_biggest_drawdown, nyc_time_to_jerusalem
+from models import Granularity, ORBRequest
+from utils.metrics import find_biggest_drawdown
 from queries import ORB_QUERY
 from database import conn
 
@@ -14,7 +14,8 @@ def hello_world():
 
 
 @router.get("/date-range")
-def get_items(start: str = None, end: str = None):
+def get_items(start: str = None, end: str = None, granularity: Granularity = "seconds"):
+    res = conn.execute()
     return {"start": start, "end": end}
 
 
