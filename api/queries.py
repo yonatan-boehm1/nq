@@ -11,12 +11,22 @@ raw_data AS (
         ts_event,
         ts_event::DATE AS trade_day,
         symbol,
+        open,
         high,
         low,
         volume
     FROM main.nq_ohlcv
     WHERE ts_event >= $start_date
     AND symbol NOT LIKE '%-%'
+),
+last_candle AS (
+    SELECT
+        trade_day,
+        symbol,
+        open AS last_open,
+        (ts_event AT TIME ZONE 'America/New_York')::TIME AS last_time
+    FROM raw_data
+    QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day, symbol ORDER BY ts_event DESC) = 1
 ),
 daily_lead AS (
     SELECT 
@@ -56,12 +66,12 @@ first_breach AS (
     AND (r.high >= o.or_high OR r.low <= o.or_low)
     QUALIFY ROW_NUMBER() OVER(PARTITION BY r.trade_day ORDER BY (r.ts_event AT TIME ZONE 'America/New_York')::TIME ASC) = 1
 ),
-final_outcome AS (
+closed_trades AS (
     SELECT 
         fb.trade_day,
+        fb.symbol,
         (fb.breach_ts AT TIME ZONE 'America/New_York')::TIME AS trade_start_time,
         (r.ts_event AT TIME ZONE 'America/New_York')::TIME AS trade_end_time,
-        (r.ts_event - fb.breach_ts) AS trade_time_elapsed,
         fb.direction,
         fb.or_high,
         fb.or_low,
@@ -85,14 +95,52 @@ final_outcome AS (
         (fb.direction = 'short' AND (r.low <= fb.target_price OR r.high >= fb.stop_price))
     )
     QUALIFY ROW_NUMBER() OVER(PARTITION BY r.trade_day ORDER BY r.ts_event ASC) = 1
+),
+manual_trades AS (
+    SELECT
+        fb.trade_day,
+        fb.symbol,
+        (fb.breach_ts AT TIME ZONE 'America/New_York')::TIME AS trade_start_time,
+        lc.last_time AS trade_end_time,
+        fb.direction,
+        fb.or_high,
+        fb.or_low,
+        fb.target_price,
+        fb.stop_price,
+        'MANUAL' AS outcome,
+        fb.or_delta
+    FROM first_breach fb
+    JOIN last_candle lc ON fb.trade_day = lc.trade_day AND fb.symbol = lc.symbol
+    WHERE NOT EXISTS (
+        SELECT 1 FROM raw_data r
+        WHERE r.trade_day = fb.trade_day
+        AND r.symbol = fb.symbol
+        AND r.ts_event > fb.breach_ts
+        AND (
+            (fb.direction = 'long' AND (r.high >= fb.target_price OR r.low <= fb.stop_price))
+            OR 
+            (fb.direction = 'short' AND (r.low <= fb.target_price OR r.high >= fb.stop_price))
+        )
+    )
+),
+final_outcome AS (
+    SELECT * FROM closed_trades
+    UNION ALL
+    SELECT * FROM manual_trades
 )
 SELECT 
-    *,
+    fo.*,
+    CASE WHEN fo.outcome = 'MANUAL' THEN lc.last_open ELSE NULL END AS manual_close_price,
     CASE 
-        WHEN fo.outcome = 'STOP' THEN -($stop_loss * fo.or_delta)
+        WHEN fo.outcome = 'STOP'   THEN -($stop_loss * fo.or_delta)
         WHEN fo.outcome = 'PROFIT' THEN ($take_profit * fo.or_delta)
+        WHEN fo.direction = 'long'  THEN lc.last_open - fo.or_high
+        WHEN fo.direction = 'short' THEN fo.or_low - lc.last_open
     END AS trade_delta
 FROM final_outcome fo
+LEFT JOIN last_candle lc ON fo.trade_day = lc.trade_day AND fo.symbol = lc.symbol
+ORDER BY fo.trade_day;"""
+
 ORB_COMBO_QUERY = """
 WITH first_breach AS (
     SELECT

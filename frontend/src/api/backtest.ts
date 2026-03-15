@@ -1,4 +1,4 @@
-import axios from "axios";
+import client from "./client";
 
 export interface ORBRequest {
   start_date: string;
@@ -18,7 +18,7 @@ export interface ORBTradeData {
   or_low: number;
   target_price: number;
   stop_price: number;
-  outcome: "PROFIT" | "STOP";
+  outcome: "PROFIT" | "STOP" | "MANUAL";
   or_delta: number;
   trade_delta: number;
 }
@@ -30,16 +30,12 @@ export interface ORBResult {
   drawdown_end: string;
 }
 
-const client = axios.create({
-  baseURL: "http://localhost:8000",
-  headers: { "Content-Type": "application/json" },
-});
-
 export const fetchBacktest = async (params: ORBRequest): Promise<ORBResult> => {
   const { data } = await client.post<ORBResult>("/backtest/orb", {
     ...params,
     take_profit: parseFloat(String(params.take_profit)),
     stop_loss: parseFloat(String(params.stop_loss)),
   });
+  console.log(data);
   return data;
 };

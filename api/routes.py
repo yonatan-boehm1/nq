@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter
-from models import Granularity, ORBRequest
+from models import Granularity, ORBRequest, ORBResultsRequest
 from utils.metrics import find_biggest_drawdown
 from queries import ORB_QUERY
 from database import conn
@@ -29,14 +29,19 @@ def get_orb_backtest(request: ORBRequest):
         "range_end": request.range_end,  
     }
     res = conn.execute(ORB_QUERY, params).df()
+    res = res.fillna('')
     data = res.to_dict(orient="records")
     biggest_drawdown, drawdown_start, drawdown_end = find_biggest_drawdown(data)
+    print(f"biggest_drawdown: {biggest_drawdown}")
+    print(f"drawdown_start: {drawdown_start}")
+    print(f"drawdown_end: {drawdown_end}")
     return {
         "trades": data,
         "biggest_drawdown": biggest_drawdown,
         "drawdown_start": drawdown_start,
         "drawdown_end": drawdown_end,
     }
+
 @router.post("/results/orb")
 def get_orb_results(request: ORBResultsRequest):
     df = conn.execute("""

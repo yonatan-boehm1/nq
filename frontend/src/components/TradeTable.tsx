@@ -31,7 +31,11 @@ const getCellColor = (
   val: ORBTradeData[keyof ORBTradeData],
 ): string => {
   if (key === "outcome")
-    return val === "PROFIT" ? theme.colors.accent : theme.colors.danger;
+    return val === "PROFIT"
+      ? theme.colors.accent
+      : val === "STOP"
+        ? theme.colors.danger
+        : theme.colors.accentBlue;
   if (key === "direction")
     return val === "long" ? theme.colors.accentBlue : theme.colors.accentOrange;
   if (key === "trade_delta")
@@ -84,7 +88,7 @@ const TradeTable = ({ data }: Props) => {
                 {cols.map((c) => {
                   let val: string | number = row[c.key] as string | number;
                   if (typeof val === "number") val = val.toFixed(2);
-                  if (c.key === 'trade_day') val = val.slice(0,10)
+                  if (c.key === "trade_day") val = val.slice(0, 10);
                   return (
                     <Td key={c.key} $color={getCellColor(c.key, row[c.key])}>
                       {val ?? "—"}

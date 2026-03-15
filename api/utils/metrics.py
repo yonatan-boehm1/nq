@@ -6,7 +6,7 @@ import pytz
 def find_biggest_drawdown(data: list[ORBResult]) -> float:
     drawdown = 0
     max_drawdown = 0
-    print(data[0]["trade_day"])
+    print('here')
     current_start = data[0]["trade_day"]
     drawdown_start, drawdown_end = data[0]["trade_day"], data[0]["trade_day"]
     for trade in data:
