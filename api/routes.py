@@ -37,3 +37,23 @@ def get_orb_backtest(request: ORBRequest):
         "drawdown_start": drawdown_start,
         "drawdown_end": drawdown_end,
     }
+@router.post("/results/orb")
+def get_orb_results(request: ORBResultsRequest):
+    df = conn.execute("""
+        SELECT * FROM orb_results
+        WHERE take_profit >= $take_profit_min
+        AND take_profit <= $take_profit_max
+        AND stop_loss >= $stop_loss_min
+        AND stop_loss <= $stop_loss_max
+        AND max_drawdown >= $max_drawdown
+        AND total_trades >= $min_trades
+        ORDER BY trade_day ASC
+    """, {
+        "take_profit_min": request.take_profit_min,
+        "take_profit_max": request.take_profit_max,
+        "stop_loss_min": request.stop_loss_min,
+        "stop_loss_max": request.stop_loss_max,
+        "max_drawdown": request.max_drawdown,
+        "min_trades": request.min_trades
+    }).df()
+    return df.to_dict(orient="records")

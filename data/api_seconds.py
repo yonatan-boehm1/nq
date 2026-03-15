@@ -15,8 +15,8 @@ dataset = "GLBX.MDP3"
 symbols = ["NQ.FUT"]
 schema = "ohlcv-1s"
 stype_in = "parent"
-start = "2023-8-01T00:00:00"
-end = "2023-10-01T00:00:00"
+start = "2021-02-01T00:00:00"
+end = "2021-02-05T00:00:00"
 
 client = db.Historical(api_key)
 
