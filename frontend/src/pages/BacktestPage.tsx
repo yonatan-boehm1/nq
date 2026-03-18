@@ -14,6 +14,7 @@ const defaultForm: FormValues = {
   stop_loss: 0.5,
   range_start: "09:30",
   range_end: "09:45",
+  direction: null,
 };
 
 const App = () => {
@@ -36,6 +37,10 @@ const App = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const handleDirectionChange = (val: "long" | "short" | null) => {
+    setForm((f) => ({ ...f, direction: val }));
   };
 
   const handleSubmit = async () => {
@@ -77,6 +82,7 @@ const App = () => {
         <Form
           form={form}
           onChange={handleChange}
+          onDirectionChange={handleDirectionChange}
           onSubmit={handleSubmit}
           loading={loading}
         />

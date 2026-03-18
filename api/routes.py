@@ -26,7 +26,8 @@ def get_orb_backtest(request: ORBRequest):
         "stop_loss": float(request.stop_loss),
         "start_date": datetime.strptime(str(request.start_date), "%Y-%m-%d").date(),
         "range_start": request.range_start,
-        "range_end": request.range_end,  
+        "range_end": request.range_end,
+        "direction": request.direction,
     }
     res = conn.execute(ORB_QUERY, params).df()
     res = res.fillna('')
@@ -46,18 +47,11 @@ def get_orb_backtest(request: ORBRequest):
 def get_orb_results(request: ORBResultsRequest):
     df = conn.execute("""
         SELECT * FROM orb_results
-        WHERE take_profit >= $take_profit_min
-        AND take_profit <= $take_profit_max
-        AND stop_loss >= $stop_loss_min
-        AND stop_loss <= $stop_loss_max
-        AND max_drawdown >= $max_drawdown
+        WHERE max_drawdown >= $max_drawdown
         AND total_trades >= $min_trades
-        ORDER BY trade_day ASC
+        ORDER BY avg_pnl DESC
+        LIMIT 100;
     """, {
-        "take_profit_min": request.take_profit_min,
-        "take_profit_max": request.take_profit_max,
-        "stop_loss_min": request.stop_loss_min,
-        "stop_loss_max": request.stop_loss_max,
         "max_drawdown": request.max_drawdown,
         "min_trades": request.min_trades
     }).df()

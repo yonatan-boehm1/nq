@@ -6,13 +6,13 @@ export interface ORBRequest {
   stop_loss: number;
   range_start: string;
   range_end: string;
+  direction?: "long" | "short" | null;
 }
 
 export interface ORBTradeData {
   trade_day: string;
   trade_start_time: string;
   trade_end_time: string;
-  trade_time_elapsed: string;
   direction: "long" | "short";
   or_high: number;
   or_low: number;

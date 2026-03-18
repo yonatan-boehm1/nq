@@ -8,7 +8,7 @@ import numpy as np
 
 TAKE_PROFITS = [round(x, 2) for x in np.arange(0.01, 1.01, 0.01)]
 STOP_LOSSES  = [round(x, 2) for x in np.arange(0.01, 1.01, 0.01)]
-START_DATE = '2023-08-01'
+START_DATE = '2021-02-01'
 combinations = list(itertools.product(TAKE_PROFITS, STOP_LOSSES))
 
 def run():
@@ -23,6 +23,7 @@ def run():
             symbol,
             high,
             low,
+            open,
             volume
         FROM main.nq_ohlcv
         WHERE ts_event >= $start_date
@@ -51,21 +52,23 @@ def run():
         GROUP BY 1, 2
     """, {"range_start": "09:30", "range_end": "09:45"})
 
+    conn.execute("""
+        CREATE OR REPLACE TEMP TABLE t_last_candle AS
+        SELECT
+            trade_day,
+            symbol,
+            open AS last_open,
+            event_time_nyc AS last_time
+        FROM t_raw_data
+        QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day, symbol ORDER BY ts_event DESC) = 1
+    """)
+
     print("Base tables ready.")
 
     combinations = list(itertools.product(TAKE_PROFITS, STOP_LOSSES))
     print(f"Running {len(combinations)} combinations...")
 
     for i, (take_profit, stop_loss) in enumerate(combinations):
-        existing = conn.execute("""
-            SELECT 1 FROM orb_results 
-            WHERE take_profit = ? AND stop_loss = ?
-        """, [take_profit, stop_loss]).fetchone()
-
-        if existing:
-            print(f"[{i+1}/{len(combinations)}] Skipping tp={take_profit} sl={stop_loss}")
-            continue
-
         df = conn.execute(ORB_COMBO_QUERY, {
             "take_profit": take_profit,
             "stop_loss": stop_loss,
@@ -77,10 +80,10 @@ def run():
             continue
 
         total = len(trades)
-        profits = sum(1 for t in trades if t.outcome == "PROFIT")
-        stops = total - profits
+        profits = sum(1 for t in trades if t.trade_delta >= 0)
+        stops = sum(1 for t in trades if t.trade_delta < 0)
         win_rate = (profits / total) * 100
-        total_pnl = sum(t.trade_delta for t in trades)
+        total_pnl = sum(t.trade_delta for t in trades if t.trade_delta is not None)
         avg_pnl = total_pnl / total
         longs = sum(1 for t in trades if t.direction == "long")
         shorts = total - longs

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import date, time
-from typing import Literal
+from typing import Literal, Optional
 
 
 class ORBResult(BaseModel):
@@ -12,10 +12,10 @@ class ORBResult(BaseModel):
     or_low: float
     target_price: float
     stop_price: float
-    outcome: Literal["PROFIT", "STOP"]
+    outcome: Literal["PROFIT", "STOP", "MANUAL"]
     or_delta: float
-    trade_delta: float
-
+    manual_close_price: float | None = None
+    trade_delta: float | None = None
 
 class ORBRequest(BaseModel):
     start_date: str = "2021-01-01"
@@ -23,6 +23,7 @@ class ORBRequest(BaseModel):
     stop_loss: float = 0.5
     range_start: str = "09:30"
     range_end: str = "09:45"
+    direction: Optional[Literal["long", "short"]] = None
 
 class ORBResultsRequest(BaseModel):
     take_profit_min: float = 0.01

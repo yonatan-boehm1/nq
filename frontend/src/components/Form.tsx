@@ -13,11 +13,13 @@ export interface FormValues {
   stop_loss: number | string;
   range_start: string;
   range_end: string;
+  direction: "long" | "short" | null;
 }
 
 interface Props {
   form: FormValues;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDirectionChange: (val: "long" | "short" | null) => void;
   onSubmit: () => void;
   loading: boolean;
 }
@@ -30,7 +32,13 @@ const fields: Field[] = [
   { name: "range_end", label: "Range End (NYC)", type: "time" },
 ];
 
-const Form = ({ form, onChange, onSubmit, loading }: Props) => (
+const Form = ({
+  form,
+  onChange,
+  onDirectionChange,
+  onSubmit,
+  loading,
+}: Props) => (
   <Wrapper>
     {fields.map((f) => (
       <Field key={f.name}>
@@ -38,12 +46,35 @@ const Form = ({ form, onChange, onSubmit, loading }: Props) => (
         <Input
           name={f.name}
           type={f.type}
-          value={form[f.name]}
+          value={form[f.name] as string}
           onChange={onChange}
           step={f.type === "number" ? "0.1" : undefined}
         />
       </Field>
     ))}
+    <Field>
+      <Label>Direction</Label>
+      <DirectionButtons>
+        <DirectionBtn
+          $active={form.direction === "long"}
+          $color={theme.colors.accentBlue}
+          onClick={() =>
+            onDirectionChange(form.direction === "long" ? null : "long")
+          }
+        >
+          Long
+        </DirectionBtn>
+        <DirectionBtn
+          $active={form.direction === "short"}
+          $color={theme.colors.accentOrange}
+          onClick={() =>
+            onDirectionChange(form.direction === "short" ? null : "short")
+          }
+        >
+          Short
+        </DirectionBtn>
+      </DirectionButtons>
+    </Field>
     <Button onClick={onSubmit} disabled={loading} $loading={loading}>
       {loading ? "Running..." : "Run →"}
     </Button>
@@ -115,4 +146,29 @@ const Button = styled.button<{ $loading: boolean }>`
     color: ${({ $loading }) =>
       !$loading ? "#000" : theme.colors.textSecondary};
   }
+`;
+
+const DirectionButtons = styled.div`
+  display: flex;
+  gap: 8px;
+  height: 100%;
+`;
+
+const DirectionBtn = styled.button<{ $active: boolean; $color: string }>`
+  flex: 1;
+  background: ${({ $active, $color }) => ($active ? $color : "transparent")};
+  color: ${({ $active, $color }) => ($active ? "#000" : $color)};
+  border: 1px solid ${({ $color }) => $color};
+  border-radius: 2px;
+  font-family: ${theme.fonts.mono};
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 0;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  white-space: nowrap;
 `;

@@ -16,8 +16,8 @@ const StatCards = ({
   drawdownEnd,
 }: Props) => {
   const total = data.length;
-  const profits = data.filter((d) => d.outcome === "PROFIT").length;
-  const stops = data.filter((d) => d.outcome === "STOP").length;
+  const profits = data.filter((d) => d.trade_delta >= 0).length;
+  const stops = data.filter((d) => d.trade_delta < 0).length;
   const manuals = data.filter((d) => d.outcome === "MANUAL").length;
   const totalDelta = data
     .reduce((s, d) => s + (d.trade_delta || 0), 0)
@@ -25,7 +25,7 @@ const StatCards = ({
   const avgDelta = (
     data.reduce((s, d) => s + (d.trade_delta || 0), 0) / total
   ).toFixed(2);
-  const winRate = ((profits / (profits+stops)) * 100).toFixed(1);
+  const winRate = ((profits / total) * 100).toFixed(1);
   const longs = data.filter((d) => d.direction === "long").length;
   const shorts = data.filter((d) => d.direction === "short").length;
 
@@ -33,31 +33,51 @@ const StatCards = ({
     <>
       <SectionLabel>Summary — {total} trades</SectionLabel>
       <TopRow>
-        <BigCard $accent={parseFloat(totalDelta) >= 0 ? theme.colors.accent : theme.colors.danger}>
+        <BigCard
+          $accent={
+            parseFloat(totalDelta) >= 0
+              ? theme.colors.accent
+              : theme.colors.danger
+          }
+        >
           <BigLabel>Total P&L</BigLabel>
-          <BigValue $accent={parseFloat(totalDelta) >= 0 ? theme.colors.accent : theme.colors.danger}>
+          <BigValue
+            $accent={
+              parseFloat(totalDelta) >= 0
+                ? theme.colors.accent
+                : theme.colors.danger
+            }
+          >
             {parseFloat(totalDelta) >= 0 ? `+${totalDelta}` : totalDelta}
           </BigValue>
         </BigCard>
 
         <BigCard $accent={theme.colors.accentBlue}>
           <BigLabel>Avg P&L</BigLabel>
-          <BigValue $accent={parseFloat(avgDelta) >= 0 ? theme.colors.accentBlue : theme.colors.danger}>
+          <BigValue
+            $accent={
+              parseFloat(avgDelta) >= 0
+                ? theme.colors.accentBlue
+                : theme.colors.danger
+            }
+          >
             {parseFloat(avgDelta) >= 0 ? `+${avgDelta}` : avgDelta}
           </BigValue>
         </BigCard>
 
         <BigCard $accent={theme.colors.accent}>
           <BigLabel>Win Rate</BigLabel>
-          <BigValue $accent={ theme.colors.accent}>
-            {winRate}%
-          </BigValue>
+          <BigValue $accent={theme.colors.accent}>{winRate}%</BigValue>
         </BigCard>
 
         <DrawdownCard>
           <BigLabel>Max Drawdown</BigLabel>
-          <BigValue $accent={theme.colors.danger}>{maxDrawdown.toFixed(2)}</BigValue>
-          <DrawdownDates>{drawdownStart} → {drawdownEnd}</DrawdownDates>
+          <BigValue $accent={theme.colors.danger}>
+            {maxDrawdown.toFixed(2)}
+          </BigValue>
+          <DrawdownDates>
+            {drawdownStart} → {drawdownEnd}
+          </DrawdownDates>
         </DrawdownCard>
       </TopRow>
 
@@ -65,19 +85,27 @@ const StatCards = ({
       <BottomRow>
         <StatCard label="Trades" value={total} />
         <Divider />
-        <StatCard label="Profits" value={profits} accent={theme.colors.accent} />
+        <StatCard
+          label="Profits"
+          value={profits}
+          accent={theme.colors.accent}
+        />
         <Divider />
         <StatCard label="Stops" value={stops} accent={theme.colors.danger} />
         <Divider />
-        <StatCard label="Manuals" value={manuals} accent={theme.colors.accentBlue} />
+        <StatCard
+          label="Manuals"
+          value={manuals}
+          accent={theme.colors.accentBlue}
+        />
         <Divider />
         <StatCard label="Long" value={longs} accent={theme.colors.border} />
         <Divider />
         <StatCard label="Short" value={shorts} accent={theme.colors.border} />
       </BottomRow>
     </>
-  )
-}
+  );
+};
 
 const SectionLabel = styled.div`
   color: ${theme.colors.textMuted};
@@ -177,7 +205,15 @@ const Divider = styled.div`
   align-self: stretch;
 `;
 
-const StatCard = ({ label, value, accent }: { label: string; value: string | number; accent?: string }) => (
+const StatCard = ({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  accent?: string;
+}) => (
   <SmallCard>
     <SmallLabel>{label}</SmallLabel>
     <SmallValue $accent={accent}>{value}</SmallValue>
