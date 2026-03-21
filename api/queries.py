@@ -58,8 +58,8 @@ first_breach AS (
             WHEN r.high >= o.or_high THEN 'long'
             ELSE 'short'
         END AS direction,
-        CASE WHEN r.high >= o.or_high THEN (o.or_high + $take_profit * o.or_delta) ELSE (o.or_low - $take_profit * o.or_delta) END AS target_price,
-        CASE WHEN r.high >= o.or_high THEN (o.or_high - ($stop_loss * o.or_delta)) ELSE (o.or_low + ($stop_loss * o.or_delta)) END AS stop_price       
+        CASE WHEN r.high >= o.or_high THEN (o.or_high + $long_take_profit * o.or_delta) ELSE (o.or_low - $short_take_profit * o.or_delta) END AS target_price,
+        CASE WHEN r.high >= o.or_high THEN (o.or_high - ($long_stop_loss * o.or_delta)) ELSE (o.or_low + ($short_stop_loss * o.or_delta)) END AS stop_price       
     FROM raw_data r
     JOIN opening_range o ON r.trade_day = o.trade_day AND r.symbol = o.symbol
     WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME >= $range_end
@@ -132,14 +132,16 @@ SELECT
     fo.*,
     CASE WHEN fo.outcome = 'MANUAL' THEN lc.last_open ELSE NULL END AS manual_close_price,
     CASE 
-        WHEN fo.outcome = 'STOP'   THEN -($stop_loss * fo.or_delta)
-        WHEN fo.outcome = 'PROFIT' THEN ($take_profit * fo.or_delta)
+        WHEN fo.outcome = 'STOP'   AND fo.direction = 'long'  THEN -($long_stop_loss  * fo.or_delta)
+        WHEN fo.outcome = 'STOP'   AND fo.direction = 'short' THEN -($short_stop_loss * fo.or_delta)
+        WHEN fo.outcome = 'PROFIT' AND fo.direction = 'long'  THEN ($long_take_profit  * fo.or_delta)
+        WHEN fo.outcome = 'PROFIT' AND fo.direction = 'short' THEN ($short_take_profit * fo.or_delta)
         WHEN fo.direction = 'long'  THEN lc.last_open - fo.or_high
         WHEN fo.direction = 'short' THEN fo.or_low - lc.last_open
     END AS trade_delta
 FROM final_outcome fo
 LEFT JOIN last_candle lc ON fo.trade_day = lc.trade_day AND fo.symbol = lc.symbol
-WHERE ($direction IS NULL OR fo.direction = $direction)
+WHERE ($direction IS NULL OR fo.direction = $direction) 
 ORDER BY fo.trade_day;"""
 
 ORB_COMBO_QUERY = """

@@ -10,8 +10,10 @@ import TradeTable from "../components/TradeTable";
 
 const defaultForm: FormValues = {
   start_date: "2021-02-01",
-  take_profit: 1.0,
-  stop_loss: 0.5,
+  long_take_profit: 1.0,
+  long_stop_loss: 0.5,
+  short_take_profit: 1.0,
+  short_stop_loss: 0.5,
   range_start: "09:30",
   range_end: "09:45",
   direction: null,
@@ -50,8 +52,10 @@ const App = () => {
     try {
       const trade_data = await fetchBacktest({
         ...form,
-        take_profit: parseFloat(String(form.take_profit)),
-        stop_loss: parseFloat(String(form.stop_loss)),
+        long_take_profit: parseFloat(String(form.long_take_profit)),
+        long_stop_loss: parseFloat(String(form.long_stop_loss)),
+        short_take_profit: parseFloat(String(form.short_take_profit)),
+        short_stop_loss: parseFloat(String(form.short_stop_loss)),
       });
       setData(trade_data.trades);
       setDrawdown({

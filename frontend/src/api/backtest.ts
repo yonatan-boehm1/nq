@@ -2,8 +2,10 @@ import client from "./client";
 
 export interface ORBRequest {
   start_date: string;
-  take_profit: number;
-  stop_loss: number;
+  long_take_profit: number;
+  long_stop_loss: number;
+  short_take_profit: number;
+  short_stop_loss: number;
   range_start: string;
   range_end: string;
   direction?: "long" | "short" | null;
@@ -33,8 +35,10 @@ export interface ORBResult {
 export const fetchBacktest = async (params: ORBRequest): Promise<ORBResult> => {
   const { data } = await client.post<ORBResult>("/backtest/orb", {
     ...params,
-    take_profit: parseFloat(String(params.take_profit)),
-    stop_loss: parseFloat(String(params.stop_loss)),
+    long_take_profit: parseFloat(String(params.long_take_profit)),
+    long_stop_loss: parseFloat(String(params.long_stop_loss)),
+    short_take_profit: parseFloat(String(params.short_take_profit)),
+    short_stop_loss: parseFloat(String(params.short_stop_loss)),
   });
   console.log(data);
   return data;

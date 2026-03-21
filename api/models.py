@@ -19,8 +19,10 @@ class ORBResult(BaseModel):
 
 class ORBRequest(BaseModel):
     start_date: str = "2021-01-01"
-    take_profit: float = 1.0
-    stop_loss: float = 0.5
+    long_take_profit: float = 1.0
+    long_stop_loss: float = 0.5
+    short_take_profit: float = 1.0
+    short_stop_loss: float = 0.5
     range_start: str = "09:30"
     range_end: str = "09:45"
     direction: Optional[Literal["long", "short"]] = None

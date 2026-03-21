@@ -9,8 +9,10 @@ interface Field {
 
 export interface FormValues {
   start_date: string;
-  take_profit: number | string;
-  stop_loss: number | string;
+  long_take_profit: number | string;
+  long_stop_loss: number | string;
+  short_take_profit: number | string;
+  short_stop_loss: number | string;
   range_start: string;
   range_end: string;
   direction: "long" | "short" | null;
@@ -26,10 +28,12 @@ interface Props {
 
 const fields: Field[] = [
   { name: "start_date", label: "Start Date", type: "date" },
-  { name: "take_profit", label: "Take Profit", type: "number" },
-  { name: "stop_loss", label: "Stop Loss", type: "number" },
-  { name: "range_start", label: "Range Start (NYC)", type: "time" },
-  { name: "range_end", label: "Range End (NYC)", type: "time" },
+  { name: "long_take_profit", label: "Long TP", type: "number" },
+  { name: "long_stop_loss", label: "Long SL", type: "number" },
+  { name: "short_take_profit", label: "Short TP", type: "number" },
+  { name: "short_stop_loss", label: "Short SL", type: "number" },
+  { name: "range_start", label: "Range Start", type: "time" },
+  { name: "range_end", label: "Range End", type: "time" },
 ];
 
 const Form = ({

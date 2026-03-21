@@ -22,12 +22,14 @@ def get_items(start: str = None, end: str = None, granularity: Granularity = "se
 @router.post("/backtest/orb")
 def get_orb_backtest(request: ORBRequest):
     params = {
-        "take_profit": float(request.take_profit),
-        "stop_loss": float(request.stop_loss),
+        "long_take_profit": float(request.long_take_profit),
+        "long_stop_loss": float(request.long_stop_loss),
+        "short_take_profit": float(request.short_take_profit),
+        "short_stop_loss": float(request.short_stop_loss),
         "start_date": datetime.strptime(str(request.start_date), "%Y-%m-%d").date(),
         "range_start": request.range_start,
         "range_end": request.range_end,
-        "direction": request.direction,
+        "direction": request.direction
     }
     res = conn.execute(ORB_QUERY, params).df()
     res = res.fillna('')
