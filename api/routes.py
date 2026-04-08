@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter
 from models import Granularity, ORBRequest, ORBResultsRequest
-from utils.metrics import find_biggest_drawdown
+from utils.metrics import find_biggest_drawdown, timer
 from queries import ORB_QUERY
 from database import conn
 
@@ -20,6 +20,7 @@ def get_items(start: str = None, end: str = None, granularity: Granularity = "se
 
 
 @router.post("/backtest/orb")
+@timer
 def get_orb_backtest(request: ORBRequest):
     params = {
         "long_take_profit": float(request.long_take_profit),
@@ -32,12 +33,9 @@ def get_orb_backtest(request: ORBRequest):
         "direction": request.direction
     }
     res = conn.execute(ORB_QUERY, params).df()
-    res = res.fillna('')
+    res = res.fillna("")
     data = res.to_dict(orient="records")
     biggest_drawdown, drawdown_start, drawdown_end = find_biggest_drawdown(data)
-    print(f"biggest_drawdown: {biggest_drawdown}")
-    print(f"drawdown_start: {drawdown_start}")
-    print(f"drawdown_end: {drawdown_end}")
     return {
         "trades": data,
         "biggest_drawdown": biggest_drawdown,
@@ -45,16 +43,17 @@ def get_orb_backtest(request: ORBRequest):
         "drawdown_end": drawdown_end,
     }
 
+
 @router.post("/results/orb")
 def get_orb_results(request: ORBResultsRequest):
-    df = conn.execute("""
+    df = conn.execute(
+        """
         SELECT * FROM orb_results
         WHERE max_drawdown >= $max_drawdown
         AND total_trades >= $min_trades
         ORDER BY avg_pnl DESC
         LIMIT 100;
-    """, {
-        "max_drawdown": request.max_drawdown,
-        "min_trades": request.min_trades
-    }).df()
+    """,
+        {"max_drawdown": request.max_drawdown, "min_trades": request.min_trades},
+    ).df()
     return df.to_dict(orient="records")

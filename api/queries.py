@@ -19,20 +19,32 @@ raw_data AS (
     WHERE ts_event >= $start_date
     AND symbol NOT LIKE '%-%'
 ),
+fast_data AS (
+    SELECT 
+        ts_event,
+        ts_event::DATE AS trade_day,
+        symbol,
+        volume,
+        open,
+        high,
+        low
+    FROM main.nq_ohlcv_1m
+    WHERE ts_event >= $start_date
+),
 last_candle AS (
     SELECT
         trade_day,
         symbol,
         open AS last_open,
         (ts_event AT TIME ZONE 'America/New_York')::TIME AS last_time
-    FROM raw_data
+    FROM fast_data
     QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day, symbol ORDER BY ts_event DESC) = 1
 ),
 daily_lead AS (
     SELECT 
         trade_day,
         symbol
-    FROM raw_data
+    FROM fast_data
     GROUP BY 1, 2
     QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day ORDER BY SUM(volume) DESC) = 1
 ),
@@ -45,7 +57,8 @@ opening_range AS (
         (MAX(r.high) - MIN(r.low)) AS or_delta
     FROM raw_data r
     JOIN daily_lead dl ON r.trade_day = dl.trade_day AND r.symbol = dl.symbol
-    WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME BETWEEN $range_start AND $range_end
+    WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME >= $range_start 
+      AND (r.ts_event AT TIME ZONE 'America/New_York')::TIME <= $range_end
     GROUP BY 1, 2
 ),
 first_breach AS (
@@ -60,7 +73,7 @@ first_breach AS (
         END AS direction,
         CASE WHEN r.high >= o.or_high THEN (o.or_high + $long_take_profit * o.or_delta) ELSE (o.or_low - $short_take_profit * o.or_delta) END AS target_price,
         CASE WHEN r.high >= o.or_high THEN (o.or_high - ($long_stop_loss * o.or_delta)) ELSE (o.or_low + ($short_stop_loss * o.or_delta)) END AS stop_price       
-    FROM raw_data r
+    FROM fast_data r
     JOIN opening_range o ON r.trade_day = o.trade_day AND r.symbol = o.symbol
     WHERE (r.ts_event AT TIME ZONE 'America/New_York')::TIME >= $range_end
     AND (r.high >= o.or_high OR r.low <= o.or_low)
@@ -84,7 +97,7 @@ closed_trades AS (
             WHEN fb.direction = 'short' AND r.high >= fb.stop_price THEN 'STOP'
         END AS outcome,
         fb.or_delta
-    FROM raw_data r
+    FROM fast_data r
     JOIN first_breach fb 
     ON r.trade_day = fb.trade_day
     AND r.symbol = fb.symbol
@@ -112,7 +125,7 @@ manual_trades AS (
     FROM first_breach fb
     JOIN last_candle lc ON fb.trade_day = lc.trade_day AND fb.symbol = lc.symbol
     WHERE NOT EXISTS (
-        SELECT 1 FROM raw_data r
+        SELECT 1 FROM fast_data r
         WHERE r.trade_day = fb.trade_day
         AND r.symbol = fb.symbol
         AND r.ts_event > fb.breach_ts

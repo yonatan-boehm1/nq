@@ -17,6 +17,7 @@ class ORBResult(BaseModel):
     manual_close_price: float | None = None
     trade_delta: float | None = None
 
+
 class ORBRequest(BaseModel):
     start_date: str = "2021-01-01"
     long_take_profit: float = 1.0
@@ -34,5 +35,6 @@ class ORBResultsRequest(BaseModel):
     stop_loss_max: float = 1.0
     max_drawdown: float = -3000.0
     min_trades: int = 0
+
 
 Granularity = Literal["seconds", "minutes", "hours", "days", "weeks", "months"]

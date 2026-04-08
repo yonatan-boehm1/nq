@@ -7,14 +7,16 @@ from datetime import datetime
 import numpy as np
 
 TAKE_PROFITS = [round(x, 2) for x in np.arange(0.01, 1.01, 0.01)]
-STOP_LOSSES  = [round(x, 2) for x in np.arange(0.01, 1.01, 0.01)]
-START_DATE = '2021-02-01'
+STOP_LOSSES = [round(x, 2) for x in np.arange(0.01, 1.01, 0.01)]
+START_DATE = "2021-02-01"
 combinations = list(itertools.product(TAKE_PROFITS, STOP_LOSSES))
+
 
 def run():
     print("Precomputing base tables...")
-    
-    conn.execute("""
+
+    conn.execute(
+        """
         CREATE OR REPLACE TEMP TABLE t_raw_data AS
         SELECT 
             ts_event,
@@ -28,17 +30,22 @@ def run():
         FROM main.nq_ohlcv
         WHERE ts_event >= $start_date
         AND symbol NOT LIKE '%-%'
-    """, {"start_date": datetime.strptime(START_DATE, "%Y-%m-%d").date()})
+    """,
+        {"start_date": datetime.strptime(START_DATE, "%Y-%m-%d").date()},
+    )
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE OR REPLACE TEMP TABLE t_daily_lead AS
         SELECT trade_day, symbol
         FROM t_raw_data
         GROUP BY 1, 2
         QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day ORDER BY SUM(volume) DESC) = 1
-    """)
+    """
+    )
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE OR REPLACE TEMP TABLE t_opening_range AS
         SELECT 
             r.trade_day,
@@ -50,9 +57,12 @@ def run():
         JOIN t_daily_lead dl ON r.trade_day = dl.trade_day AND r.symbol = dl.symbol
         WHERE r.event_time_nyc BETWEEN $range_start AND $range_end
         GROUP BY 1, 2
-    """, {"range_start": "09:30", "range_end": "09:45"})
+    """,
+        {"range_start": "09:30", "range_end": "09:45"},
+    )
 
-    conn.execute("""
+    conn.execute(
+        """
         CREATE OR REPLACE TEMP TABLE t_last_candle AS
         SELECT
             trade_day,
@@ -61,7 +71,8 @@ def run():
             event_time_nyc AS last_time
         FROM t_raw_data
         QUALIFY ROW_NUMBER() OVER(PARTITION BY trade_day, symbol ORDER BY ts_event DESC) = 1
-    """)
+    """
+    )
 
     print("Base tables ready.")
 
@@ -69,11 +80,14 @@ def run():
     print(f"Running {len(combinations)} combinations...")
 
     for i, (take_profit, stop_loss) in enumerate(combinations):
-        df = conn.execute(ORB_COMBO_QUERY, {
-            "take_profit": take_profit,
-            "stop_loss": stop_loss,
-            "range_end": "09:45",
-        }).df()
+        df = conn.execute(
+            ORB_COMBO_QUERY,
+            {
+                "take_profit": take_profit,
+                "stop_loss": stop_loss,
+                "range_end": "09:45",
+            },
+        ).df()
 
         trades = [ORBResult(**row) for row in df.to_dict(orient="records")]
         if not trades:
@@ -89,18 +103,33 @@ def run():
         shorts = total - longs
         max_drawdown, drawdown_start, drawdown_end = find_biggest_drawdown(trades)
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO orb_results VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, [
-            take_profit, stop_loss,
-            total, win_rate, total_pnl, avg_pnl,
-            profits, stops, longs, shorts,
-            max_drawdown, drawdown_start, drawdown_end
-        ])
+        """,
+            [
+                take_profit,
+                stop_loss,
+                total,
+                win_rate,
+                total_pnl,
+                avg_pnl,
+                profits,
+                stops,
+                longs,
+                shorts,
+                max_drawdown,
+                drawdown_start,
+                drawdown_end,
+            ],
+        )
 
-        print(f"[{i+1}/{len(combinations)}] tp={take_profit} sl={stop_loss} — {total} trades, wr={win_rate:.1f}%")
+        print(
+            f"[{i+1}/{len(combinations)}] tp={take_profit} sl={stop_loss} — {total} trades, wr={win_rate:.1f}%"
+        )
 
     print("Done.")
+
 
 if __name__ == "__main__":
     run()

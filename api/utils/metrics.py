@@ -1,12 +1,23 @@
 from models import ORBResult
-from datetime import datetime
-import pytz
+import time
+from functools import wraps
+
+
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        print(f"Function '{func.__name__}' executed in {end_time - start_time:.4f}s")
+        return result
+
+    return wrapper
 
 
 def find_biggest_drawdown(data: list[ORBResult]) -> float:
     drawdown = 0
     max_drawdown = 0
-    print('here')
     current_start = data[0]["trade_day"]
     drawdown_start, drawdown_end = data[0]["trade_day"], data[0]["trade_day"]
     for trade in data:
