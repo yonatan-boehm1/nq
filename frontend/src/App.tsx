@@ -10,6 +10,7 @@ const App = () => (
     <Routes>
       <Route path="/" element={<BacktestPage />} />
       <Route path="/results" element={<ResultsPage />} />
+      <Route path="/chart" element={<ChartPage />} />
     </Routes>
   </>
 );

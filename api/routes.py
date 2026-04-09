@@ -1,8 +1,8 @@
 from datetime import datetime
-from fastapi import APIRouter
-from models import Granularity, ORBRequest, ORBResultsRequest
+from fastapi import APIRouter, Query
+from models import Granularity, ORBRequest, ORBResultsRequest, FibRequest
 from utils.metrics import find_biggest_drawdown, timer
-from queries import ORB_QUERY
+from queries import ORB_QUERY, FIB_QUERY, CHART_QUERY
 from database import conn
 
 router = APIRouter()
@@ -56,4 +56,30 @@ def get_orb_results(request: ORBResultsRequest):
     """,
         {"max_drawdown": request.max_drawdown, "min_trades": request.min_trades},
     ).df()
+    return df.to_dict(orient="records")
+
+
+@router.get("/chart")
+@timer
+def get_chart_data(
+    start: str = Query(..., description="Start datetime, e.g. 2024-01-02T09:30"),
+    end: str = Query(..., description="End datetime, e.g. 2024-01-02T16:00"),
+    granularity: str = Query("1 minute", description="DuckDB interval string: '1 minute', '5 minutes', '1 hour', etc."),
+):
+    """Return OHLCV candles for the highest-volume contract in the requested range, bucketed to the given granularity."""
+    VALID = {
+        "1m":  "1 minute",
+        "5m":  "5 minutes",
+        "15m": "15 minutes",
+        "30m": "30 minutes",
+        "1h":  "1 hour",
+        "4h":  "4 hours",
+        "1d":  "1 day",
+    }
+    interval = VALID.get(granularity, granularity)  # accept shorthand or raw interval
+    df = conn.execute(
+        CHART_QUERY,
+        {"start": start, "end": end, "interval": interval},
+    ).df()
+    df = df.fillna("")
     return df.to_dict(orient="records")

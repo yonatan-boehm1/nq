@@ -6,6 +6,7 @@ const Nav = () => (
   <Wrapper>
     <Link to="/">Backtest</Link>
     <Link to="/results">Results</Link>
+    <Link to="/chart">Chart</Link>
   </Wrapper>
 );
 

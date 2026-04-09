@@ -258,3 +258,48 @@ FROM final_outcome fo
 LEFT JOIN t_last_candle lc ON fo.trade_day = lc.trade_day AND fo.symbol = lc.symbol
 ORDER BY fo.trade_day;
 """
+
+CHART_QUERY = """
+WITH base AS (
+    SELECT
+        ts_event,
+        symbol,
+        open,
+        high,
+        low,
+        close,
+        volume
+    FROM main.nq_ohlcv_1m
+    WHERE ts_event >= $start::TIMESTAMPTZ
+      AND ts_event <= $end::TIMESTAMPTZ
+),
+lead_symbol AS (
+    SELECT symbol
+    FROM base
+    GROUP BY symbol
+    ORDER BY SUM(volume) DESC
+    LIMIT 1
+),
+bucketed AS (
+    SELECT
+        time_bucket($interval::INTERVAL, b.ts_event AT TIME ZONE 'America/New_York') AS bucket,
+        FIRST(b.open ORDER BY b.ts_event)  AS open,
+        MAX(b.high)                         AS high,
+        MIN(b.low)                          AS low,
+        LAST(b.close ORDER BY b.ts_event)   AS close,
+        SUM(b.volume)                       AS volume
+    FROM base b
+    JOIN lead_symbol ls ON b.symbol = ls.symbol
+    GROUP BY bucket
+)
+SELECT
+    bucket::VARCHAR AS time,
+    open,
+    high,
+    low,
+    close,
+    volume
+FROM bucketed
+ORDER BY bucket ASC
+LIMIT 2000;
+"""
