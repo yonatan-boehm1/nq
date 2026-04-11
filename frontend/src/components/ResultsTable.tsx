@@ -18,6 +18,10 @@ interface Props {
 
 const cols: Col[] = [
   {
+    key: "direction",
+    label: "Dir",
+  },
+  {
     key: "take_profit",
     label: "Take Profit",
     format: (v) => (v as number).toFixed(2),
@@ -38,11 +42,14 @@ const cols: Col[] = [
     label: "Total PnL",
     format: (v) => (v as number).toFixed(2),
   },
+  {
+    key: "scaled_pnl",
+    label: "Scaled PnL",
+    format: (v) => (v as number).toFixed(2),
+  },
   { key: "avg_pnl", label: "Avg PnL", format: (v) => (v as number).toFixed(2) },
   { key: "profits", label: "Profits" },
   { key: "stops", label: "Stops" },
-  { key: "long_trades", label: "Long" },
-  { key: "short_trades", label: "Short" },
   {
     key: "max_drawdown",
     label: "Max DD",
@@ -64,7 +71,9 @@ const getCellColor = (
   key: keyof ORBResultsRow,
   val: number | string,
 ): string => {
-  if (key === "total_pnl" || key === "avg_pnl")
+  if (key === "direction")
+    return (val as string) === "long" ? theme.colors.accentBlue : theme.colors.accentOrange;
+  if (key === "total_pnl" || key === "avg_pnl" || key === "scaled_pnl")
     return (val as number) >= 0 ? theme.colors.accent : theme.colors.danger;
   if (key === "max_drawdown") return theme.colors.danger;
   if (key === "win_rate")
@@ -73,7 +82,7 @@ const getCellColor = (
 };
 
 const ResultsTable = ({ data, loading }: Props) => {
-  const [sortCol, setSortCol] = useState<keyof ORBResultsRow>("total_pnl");
+  const [sortCol, setSortCol] = useState<keyof ORBResultsRow>("scaled_pnl");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const handleSort = (col: keyof ORBResultsRow) => {

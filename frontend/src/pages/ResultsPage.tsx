@@ -8,6 +8,8 @@ import type { ORBResultsRequest, ORBResultsRow } from "../api/results";
 const defaultFilters: ORBResultsRequest = {
   max_drawdown: -99999.0,
   min_trades: 0,
+  direction: null,
+  target_drawdown: 1000.0,
 };
 
 const ResultsPage = () => {
@@ -21,6 +23,10 @@ const ResultsPage = () => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setFilters((prev) => ({ ...prev, [key]: parseFloat(e.target.value) }));
     };
+
+  const handleDirection = (val: "long" | "short" | null) => {
+    setFilters((prev) => ({ ...prev, direction: val }));
+  };
 
   const memoizedTable = useMemo(
     () => <ResultsTable data={data} loading={loading} />,
@@ -86,6 +92,47 @@ const ResultsPage = () => {
             step="1"
             value={filters.min_trades}
             onChange={handleSlider("min_trades")}
+          />
+        </SliderGroup>
+
+        <Divider />
+
+        <SliderGroup>
+          <SliderLabel>
+            Direction
+          </SliderLabel>
+          <DirButtons>
+            <DirBtn
+              $active={filters.direction === "long"}
+              $color="#3b82f6"
+              onClick={() => handleDirection(filters.direction === "long" ? null : "long")}
+            >
+              Long
+            </DirBtn>
+            <DirBtn
+              $active={filters.direction === "short"}
+              $color="#f97316"
+              onClick={() => handleDirection(filters.direction === "short" ? null : "short")}
+            >
+              Short
+            </DirBtn>
+          </DirButtons>
+        </SliderGroup>
+
+        <Divider />
+
+        <SliderGroup>
+          <SliderLabel>
+            DD Limit (Risk)
+            <Value>{filters.target_drawdown}</Value>
+          </SliderLabel>
+          <Slider
+            type="range"
+            min="100"
+            max="10000"
+            step="100"
+            value={filters.target_drawdown}
+            onChange={handleSlider("target_drawdown")}
           />
         </SliderGroup>
 
@@ -211,6 +258,30 @@ const Divider = styled.div`
   width: 1px;
   background: ${theme.colors.border};
   align-self: stretch;
+`;
+
+const DirButtons = styled.div`
+  display: flex;
+  gap: 8px;
+  height: 36px;
+`;
+
+const DirBtn = styled.button<{ $active: boolean; $color: string }>`
+  flex: 1;
+  background: ${({ $active, $color }) => ($active ? $color : "transparent")};
+  color: ${({ $active, $color }) => ($active ? "#000" : $color)};
+  border: 1px solid ${({ $color }) => $color};
+  border-radius: 2px;
+  font-family: ${theme.fonts.mono};
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  white-space: nowrap;
 `;
 
 const ApplyButton = styled.button`

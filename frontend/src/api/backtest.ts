@@ -9,6 +9,7 @@ export interface ORBRequest {
   range_start: string;
   range_end: string;
   direction?: "long" | "short" | null;
+  mode: "fast" | "accurate";
 }
 
 export interface ORBTradeData {
@@ -22,6 +23,7 @@ export interface ORBTradeData {
   stop_price: number;
   outcome: "PROFIT" | "STOP" | "MANUAL";
   or_delta: number;
+  entry_price?: number;
   trade_delta: number;
 }
 
@@ -40,6 +42,5 @@ export const fetchBacktest = async (params: ORBRequest): Promise<ORBResult> => {
     short_take_profit: parseFloat(String(params.short_take_profit)),
     short_stop_loss: parseFloat(String(params.short_stop_loss)),
   });
-  console.log(data);
   return data;
 };

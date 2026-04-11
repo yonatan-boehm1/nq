@@ -35,6 +35,8 @@ class ORBResultsRequest(BaseModel):
     stop_loss_max: float = 1.0
     max_drawdown: float = -3000.0
     min_trades: int = 0
+    direction: Optional[Literal["long", "short"]] = None
+    target_drawdown: float = 1000.0
 
 
 Granularity = Literal["seconds", "minutes", "hours", "days", "weeks", "months"]

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import styled, { createGlobalStyle } from "styled-components";
 import { theme } from "../styles/theme";
 import { fetchBacktest } from "../api/backtest";
@@ -17,9 +17,10 @@ const defaultForm: FormValues = {
   range_start: "09:30",
   range_end: "09:45",
   direction: null,
+  mode: "fast",
 };
 
-const App = () => {
+const BacktestPage = () => {
   const [form, setForm] = useState<FormValues>(defaultForm);
   const [data, setData] = useState<ORBTradeData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,10 +31,29 @@ const App = () => {
     start: string;
     end: string;
   }>({ max: 0, start: "", end: "" });
+  const [targetDrawdown, setTargetDrawdown] = useState<number>(1000);
+  const [sliderValue, setSliderValue] = useState<number>(1000);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setTargetDrawdown(sliderValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [sliderValue]);
+
+  const multiplier = drawdown.max !== 0 ? targetDrawdown / Math.abs(drawdown.max) : 1;
+
+  const scaledData = useMemo(() => {
+    if (!data.length) return [];
+    return data.map((d) => ({
+      ...d,
+      trade_delta: d.trade_delta !== null ? d.trade_delta * multiplier : 0,
+    }));
+  }, [data, multiplier]);
 
   const memoizedTable = useMemo(
-    () => <TradeTable data={data} />,
-    [data, loading],
+    () => <TradeTable data={scaledData} />,
+    [scaledData],
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +63,10 @@ const App = () => {
 
   const handleDirectionChange = (val: "long" | "short" | null) => {
     setForm((f) => ({ ...f, direction: val }));
+  };
+
+  const handleModeChange = (val: "fast" | "accurate") => {
+    setForm((f) => ({ ...f, mode: val }));
   };
 
   const handleSubmit = async () => {
@@ -63,6 +87,9 @@ const App = () => {
         start: trade_data.drawdown_start,
         end: trade_data.drawdown_end,
       });
+      const initialDD = trade_data.biggest_drawdown !== 0 ? Math.abs(trade_data.biggest_drawdown) : 1000;
+      setSliderValue(initialDD);
+      setTargetDrawdown(initialDD);
       setSubmitted(true);
     } catch (e) {
       setError((e as Error).message);
@@ -87,6 +114,7 @@ const App = () => {
           form={form}
           onChange={handleChange}
           onDirectionChange={handleDirectionChange}
+          onModeChange={handleModeChange}
           onSubmit={handleSubmit}
           loading={loading}
         />
@@ -97,9 +125,26 @@ const App = () => {
         )}
         {submitted && data.length > 0 && (
           <>
+            <SizingBox>
+              <SizingLabel>
+                Target DD Limit
+                <SizingValue>${(sliderValue).toFixed(0)}</SizingValue>
+              </SizingLabel>
+              <SizingSlider
+                type="range"
+                min="10"
+                max="10000"
+                step="10"
+                value={sliderValue}
+                onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+              />
+              <SizingInfo>
+                Position size scaled by {(multiplier).toFixed(2)}x
+              </SizingInfo>
+            </SizingBox>
             <StatCards
-              data={data}
-              maxDrawdown={drawdown.max}
+              data={scaledData}
+              maxDrawdown={drawdown.max * multiplier}
               drawdownStart={drawdown.start}
               drawdownEnd={drawdown.end}
             />
@@ -111,7 +156,7 @@ const App = () => {
   );
 };
 
-export default App;
+export default BacktestPage;
 
 export const GlobalStyle = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
@@ -181,4 +226,64 @@ export const Empty = styled.div`
   font-size: 13px;
   padding: 40px 0;
   text-align: center;
+`;
+
+const SizingBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.border};
+  padding: 24px;
+  margin-bottom: 24px;
+  border-radius: 2px;
+`;
+
+const SizingLabel = styled.label`
+  color: ${theme.colors.textSecondary};
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: ${theme.fonts.mono};
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: nowrap;
+`;
+
+const SizingValue = styled.span`
+  color: ${theme.colors.accent};
+  font-size: 14px;
+  font-weight: 700;
+`;
+
+const SizingSlider = styled.input`
+  -webkit-appearance: none;
+  flex: 1;
+  height: 2px;
+  background: ${theme.colors.border};
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: ${theme.colors.accent};
+    cursor: pointer;
+    transition: transform 0.15s;
+
+    &:hover {
+      transform: scale(1.3);
+    }
+  }
+`;
+
+const SizingInfo = styled.div`
+  color: ${theme.colors.textMuted};
+  font-size: 10px;
+  font-family: ${theme.fonts.mono};
+  white-space: nowrap;
 `;

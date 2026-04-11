@@ -311,7 +311,7 @@ const ChartPage = () => {
           <HeaderMeta>NQ Futures</HeaderMeta>
         </HeaderRow>
         <Title>Price Chart</Title>
-        <Subtitle>1-minute OHLCV — highest-volume contract</Subtitle>
+        <Subtitle>1-minute OHLCV — highest-volume contract — times in IL (Asia/Jerusalem)</Subtitle>
       </Header>
 
       <FilterBar>

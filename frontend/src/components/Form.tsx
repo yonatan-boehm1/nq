@@ -16,12 +16,14 @@ export interface FormValues {
   range_start: string;
   range_end: string;
   direction: "long" | "short" | null;
+  mode: "fast" | "accurate";
 }
 
 interface Props {
   form: FormValues;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDirectionChange: (val: "long" | "short" | null) => void;
+  onModeChange: (val: "fast" | "accurate") => void;
   onSubmit: () => void;
   loading: boolean;
 }
@@ -40,6 +42,7 @@ const Form = ({
   form,
   onChange,
   onDirectionChange,
+  onModeChange,
   onSubmit,
   loading,
 }: Props) => (
@@ -78,6 +81,25 @@ const Form = ({
           Short
         </DirectionBtn>
       </DirectionButtons>
+    </Field>
+    <Field>
+      <Label>Mode</Label>
+      <ModeButtons>
+        <ModeBtn
+          $active={form.mode === "fast"}
+          onClick={() => onModeChange("fast")}
+          title="Uses 1-minute candles for faster execution"
+        >
+          Fast
+        </ModeBtn>
+        <ModeBtn
+          $active={form.mode === "accurate"}
+          onClick={() => onModeChange("accurate")}
+          title="Uses second-level candles for more precise entries/exits"
+        >
+          Accurate
+        </ModeBtn>
+      </ModeButtons>
     </Field>
     <Button onClick={onSubmit} disabled={loading} $loading={loading}>
       {loading ? "Running..." : "Run →"}
@@ -175,4 +197,41 @@ const DirectionBtn = styled.button<{ $active: boolean; $color: string }>`
     background 0.15s,
     color 0.15s;
   white-space: nowrap;
+`;
+
+const ModeButtons = styled.div`
+  display: flex;
+  gap: 0;
+  height: 100%;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const ModeBtn = styled.button<{ $active: boolean }>`
+  flex: 1;
+  background: ${({ $active }) => ($active ? theme.colors.accent : "transparent")};
+  color: ${({ $active }) => ($active ? "#000" : theme.colors.textSecondary)};
+  border: none;
+  border-right: 1px solid ${theme.colors.border};
+  font-family: ${theme.fonts.mono};
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 0;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  white-space: nowrap;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover {
+    background: ${({ $active }) => ($active ? theme.colors.accent : "#1a1a1a")};
+    color: ${({ $active }) => ($active ? "#000" : theme.colors.textPrimary)};
+  }
 `;

@@ -109,6 +109,8 @@ export default TradeTable;
 
 const Wrapper = styled.div`
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
   border: 1px solid ${theme.colors.border};
   border-radius: 2px;
 `;
@@ -121,6 +123,9 @@ const Table = styled.table`
 `;
 
 const Th = styled.th<{ $active: boolean }>`
+  position: sticky;
+  top: 0;
+  z-index: 10;
   padding: 12px 16px;
   text-align: left;
   color: ${({ $active }) =>
@@ -134,6 +139,7 @@ const Th = styled.th<{ $active: boolean }>`
   cursor: pointer;
   transition: color 0.15s;
   user-select: none;
+  box-shadow: 0 1px 0 ${theme.colors.border}; /* add bottom border natively to sticky header since tr border might scroll */
 
   &:hover {
     color: ${theme.colors.accent};
