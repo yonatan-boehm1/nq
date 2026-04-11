@@ -12,7 +12,7 @@ interface Col {
   label: string;
 }
 
-const cols: Col[] = [
+const baseCols: Col[] = [
   { key: "trade_day", label: "Date" },
   { key: "direction", label: "Dir" },
   { key: "trade_start_time", label: "Entry" },
@@ -20,6 +20,7 @@ const cols: Col[] = [
   { key: "or_high", label: "OR High" },
   { key: "or_low", label: "OR Low" },
   { key: "or_delta", label: "OR Δ" },
+  { key: "entry_price", label: "Entry $" },
   { key: "target_price", label: "Target" },
   { key: "stop_price", label: "Stop" },
   { key: "outcome", label: "Outcome" },
@@ -47,6 +48,11 @@ const TradeTable = ({ data }: Props) => {
   const [sortCol, setSortCol] = useState<keyof ORBTradeData>("trade_day");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  const hasEntryPrice = data.some((d) => d.entry_price !== undefined);
+  const activeCols = baseCols.filter(
+    (c) => c.key !== "entry_price" || hasEntryPrice,
+  );
+
   const handleSort = (col: keyof ORBTradeData) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -58,8 +64,8 @@ const TradeTable = ({ data }: Props) => {
   const sorted = [...data].sort((a, b) => {
     const va = a[sortCol],
       vb = b[sortCol];
-    if (va < vb) return sortDir === "asc" ? -1 : 1;
-    if (va > vb) return sortDir === "asc" ? 1 : -1;
+    if (va && vb && va < vb) return sortDir === "asc" ? -1 : 1;
+    if (va && vb && va > vb) return sortDir === "asc" ? 1 : -1;
     return 0;
   });
 
@@ -70,7 +76,7 @@ const TradeTable = ({ data }: Props) => {
         <Table>
           <thead>
             <tr>
-              {cols.map((c) => (
+              {activeCols.map((c) => (
                 <Th
                   key={c.key}
                   $active={sortCol === c.key}
@@ -85,7 +91,7 @@ const TradeTable = ({ data }: Props) => {
           <tbody>
             {sorted.map((row, i) => (
               <Tr key={i}>
-                {cols.map((c) => {
+                {activeCols.map((c) => {
                   let val: string | number = row[c.key] as string | number;
                   if (typeof val === "number") val = val.toFixed(2);
                   if (c.key === "trade_day") val = val.slice(0, 10);

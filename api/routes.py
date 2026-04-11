@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, Query
 from models import Granularity, ORBRequest, ORBResultsRequest, FibRequest
 from utils.metrics import find_biggest_drawdown, timer
-from queries import ORB_QUERY, FIB_QUERY, CHART_QUERY
+from queries import ORB_FAST,ORB_ACCURATE , FIB_QUERY, CHART_QUERY
 from database import conn
 
 router = APIRouter()
@@ -32,7 +32,36 @@ def get_orb_backtest(request: ORBRequest):
         "range_end": request.range_end,
         "direction": request.direction
     }
-    res = conn.execute(ORB_QUERY, params).df()
+    query = ORB_ACCURATE if request.mode == "accurate" else ORB_FAST
+    res = conn.execute(query, params).df()
+    res = res.fillna("")
+    data = res.to_dict(orient="records")
+    biggest_drawdown, drawdown_start, drawdown_end = find_biggest_drawdown(data)
+    return {
+        "trades": data,
+        "biggest_drawdown": biggest_drawdown,
+        "drawdown_start": drawdown_start,
+        "drawdown_end": drawdown_end,
+    }
+
+
+@router.post("/backtest/fib")
+@timer
+def get_fib_backtest(request: FibRequest):
+    params = {
+        "start_date": datetime.strptime(str(request.start_date), "%Y-%m-%d").date(),
+        "long_entry_trigger": float(request.long_entry_trigger),
+        "long_take_profit": float(request.long_take_profit),
+        "long_stop_loss": float(request.long_stop_loss),
+        "short_entry_trigger": float(request.short_entry_trigger),
+        "short_take_profit": float(request.short_take_profit),
+        "short_stop_loss": float(request.short_stop_loss),
+        "range_start": request.range_start,
+        "range_end": request.range_end,
+        "min_or_delta": float(request.min_or_delta) if request.min_or_delta is not None else None,
+        "max_or_delta": float(request.max_or_delta) if request.max_or_delta is not None else None,
+    }
+    res = conn.execute(FIB_QUERY, params).df()
     res = res.fillna("")
     data = res.to_dict(orient="records")
     biggest_drawdown, drawdown_start, drawdown_end = find_biggest_drawdown(data)
@@ -48,13 +77,23 @@ def get_orb_backtest(request: ORBRequest):
 def get_orb_results(request: ORBResultsRequest):
     df = conn.execute(
         """
-        SELECT * FROM orb_results
+        SELECT *,
+               CASE 
+                   WHEN max_drawdown < 0 THEN (total_pnl / ABS(max_drawdown)) * $target_drawdown 
+                   ELSE total_pnl 
+               END AS scaled_pnl
+        FROM orb_results
         WHERE max_drawdown >= $max_drawdown
         AND total_trades >= $min_trades
-        ORDER BY avg_pnl DESC
-        LIMIT 100;
+        AND ($direction IS NULL OR direction = $direction)
+        ORDER BY scaled_pnl DESC;
     """,
-        {"max_drawdown": request.max_drawdown, "min_trades": request.min_trades},
+        {
+            "max_drawdown": request.max_drawdown, 
+            "min_trades": request.min_trades, 
+            "direction": request.direction,
+            "target_drawdown": request.target_drawdown
+        },
     ).df()
     return df.to_dict(orient="records")
 

@@ -27,6 +27,21 @@ class ORBRequest(BaseModel):
     range_start: str = "09:30"
     range_end: str = "09:45"
     direction: Optional[Literal["long", "short"]] = None
+    mode: Literal["fast", "accurate"] = "fast"
+
+class FibRequest(BaseModel):
+    start_date: str = "2021-01-01"
+    long_entry_trigger: float = 0.618
+    long_take_profit: float = 0.0
+    long_stop_loss: float = 1.272
+    short_entry_trigger: float = 0.618
+    short_take_profit: float = 0.0
+    short_stop_loss: float = 1.272
+    range_start: str = "02:00:00"
+    range_end: str = "09:00:00"
+    direction: Optional[Literal["long", "short"]] = None
+    min_or_delta: Optional[float] = None
+    max_or_delta: Optional[float] = None
 
 class ORBResultsRequest(BaseModel):
     take_profit_min: float = 0.01
