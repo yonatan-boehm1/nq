@@ -161,7 +161,6 @@ const BacktestPage = () => {
 export default BacktestPage;
 
 export const GlobalStyle = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: ${theme.colors.bg}; margin: 0; padding: 0; }
   ::-webkit-scrollbar { height: 4px; background: #111; }
