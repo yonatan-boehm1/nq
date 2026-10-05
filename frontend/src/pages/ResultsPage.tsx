@@ -52,7 +52,7 @@ const ResultsPage = () => {
         </HeaderRow>
         <Title>Precomputed Results</Title>
         <Subtitle>
-          All take profit / stop loss combinations for 9:30 - 9:45 EST
+          All take profit / stop loss combinations for 09:30–09:45 ET
         </Subtitle>
       </Header>
 
