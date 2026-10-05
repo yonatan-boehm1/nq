@@ -107,7 +107,9 @@ const BacktestPage = () => {
             <HeaderMeta>NQ Futures</HeaderMeta>
           </HeaderRow>
           <Title>ORB Backtest</Title>
-          <Subtitle>Opening Range Breakout — 16:30–16:45 EST</Subtitle>
+          <Subtitle>
+            Opening Range Breakout — {form.range_start}–{form.range_end} ET
+          </Subtitle>
         </Header>
 
         <Form
