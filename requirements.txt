@@ -1,6 +1,2 @@
+-r api/requirements.txt
 databento
-duckdb
-python-dotenv
-fastapi
-uvicorn[standard]
-pytz

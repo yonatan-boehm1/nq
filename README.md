@@ -37,6 +37,5 @@ cd api && uvicorn main:app --reload --port 8000
 Frontend on port 5173:
 
 ```bash
-npm install    # repo root: installs axios, which the frontend uses
 cd frontend && npm install && npm run dev
 ```
