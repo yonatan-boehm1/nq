@@ -1,0 +1,6 @@
+duckdb==1.4.4
+fastapi==0.129.0
+pandas==3.0.1
+python-dotenv==1.2.1
+pytz==2025.2
+uvicorn[standard]==0.41.0
